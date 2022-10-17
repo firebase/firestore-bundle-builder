@@ -1,3 +1,7 @@
+## Version 0.1.3
+
+Use HTTPS links in PREINSTALL.
+
 ## Version 0.1.2
 
 Updated POSTINSTALl links to point to correct repo.
