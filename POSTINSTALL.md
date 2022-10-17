@@ -3,7 +3,7 @@
 The first thing you’ll want to do is create a new bundle specification in Firestore. To do this, you can use the admin dashboard for this extension by running the following commands:
 
 ```bash
-git clone git@github.com:firebase/firestore-bundle-builder.git
+git clone https://github.com/firebase/firestore-bundle-builder.git
 cd firestore-bundle-builder/admin-dashboard
 npm install
 npm run dev
