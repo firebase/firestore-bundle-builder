@@ -3,13 +3,13 @@
 The first thing you’ll want to do is create a new bundle specification in Firestore. To do this, you can use the admin dashboard for this extension by running the following commands:
 
 ```bash
-git clone git@github.com:firebase/extensions.git
-cd extensions/firestore-bundle-builder/admin-dashboard
+git clone git@github.com:firebase/firestore-bundle-builder.git
+cd firestore-bundle-builder/admin-dashboard
 npm install
 npm run dev
 ```
 
-View the dashboard [README](https://github.com/firebase/extensions/tree/next/firebase-bundle-builder/admin-dashboard) for additional setup instructions.
+View the dashboard [README](https://github.com/firebase/firestore-bundle-builder/tree/main/admin-dashboard) for additional setup instructions.
 
 When creating a new bundle specification via the admin dashboard, a number of fields are available (fields marked with \* are required):
 
