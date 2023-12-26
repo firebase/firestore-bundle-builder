@@ -14,6 +14,10 @@ author:
   authorName: Firebase
   url: https://firebase.google.com
 
+
+sourceUrl: https://github.com/firebase/firestore-bundle-builder
+releaseNotesUrl: https://github.com/firebase/firestore-bundle-builder/tree/main/CHANGELOG.md
+
 billingRequired: true
 
 # For your extension to interact with other Google APIs (like Firestore, Cloud Storage, or Cloud Translation),
