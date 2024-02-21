@@ -1,3 +1,7 @@
+## Version 0.1.4
+
+Republish to stabilize extension.
+
 ## Version 0.1.3
 
 Use HTTPS links in PREINSTALL.
