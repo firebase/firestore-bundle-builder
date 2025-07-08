@@ -1,5 +1,5 @@
-import { buildQuery } from "../src/build_bundle";
 import * as admin from "firebase-admin";
+import { buildQuery } from "../src/build_bundle";
 
 describe("buildQuery", () => {
   let db: admin.firestore.Firestore;
@@ -7,7 +7,7 @@ describe("buildQuery", () => {
     db = admin.initializeApp({ projectId: "demo-experimental" }).firestore();
   });
 
-  xit("should build expected queries", () => {
+  it("should build expected queries", () => {
     const queries: [admin.firestore.Query, admin.firestore.Query][] = [
       [
         buildQuery(db, { collection: "test-coll", conditions: [] }, {}, {}),
@@ -22,7 +22,7 @@ describe("buildQuery", () => {
             collectionGroupQuery: true,
           },
           {},
-          {}
+          {},
         ),
         db.collectionGroup("test-coll") as admin.firestore.Query,
       ],
@@ -39,7 +39,7 @@ describe("buildQuery", () => {
             ],
           },
           {},
-          {}
+          {},
         ),
         db
           .collection("test-coll")
@@ -62,7 +62,7 @@ describe("buildQuery", () => {
             ],
           },
           {},
-          {}
+          {},
         ),
         db
           .collection("test-coll")
@@ -94,7 +94,7 @@ describe("buildQuery", () => {
             field: "field1",
             limit: 10,
             contains: ["a", "d", "e"],
-          }
+          },
         ),
         db
           .collection("test-coll")
@@ -126,7 +126,7 @@ describe("buildQuery", () => {
             otherField: "otherField",
             floatValue: 3.0,
             value: false,
-          }
+          },
         ),
         db
           .collection("test-coll")

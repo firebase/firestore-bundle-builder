@@ -6,13 +6,12 @@
  * specifications.
  */
 
-import * as admin from "firebase-admin";
-import * as functions from "firebase-functions";
-import { Timestamp } from "@google-cloud/firestore";
-import { BundleSpec, build, ParamsSpec } from "./build_bundle";
 import { Storage } from "@google-cloud/storage";
+import * as admin from "firebase-admin";
+import * as functions from "firebase-functions/v1";
+import { Readable } from "stream";
 import { createGzip } from "zlib";
-const { Readable } = require("stream");
+import { type BundleSpec, build, type ParamsSpec } from "./build_bundle";
 
 const BUNDLESPEC_COLLECTION = process.env.BUNDLESPEC_COLLECTION || "bundles";
 const BUNDLE_STORAGE_BUCKET =
@@ -54,7 +53,7 @@ function spec(name: string): Promise<BundleSpec | null> {
 // Return query parameters that are specified in given `ParamsSpec`.
 function filterQuery(
   qs: { [key: string]: any },
-  params: ParamsSpec
+  params: ParamsSpec,
 ): { [key: string]: any } {
   const out: { [key: string]: any } = {};
   for (const k in qs) {
@@ -74,7 +73,10 @@ function sortQuery(qs: { [key: string]: any }): string {
 
 // Returns a path for the given bundle Id and associated http query parameters.
 function storagePath(bundleId: string, query: { [k: string]: any }): string {
-  return `${STORAGE_PREFIX}/${bundleId}?${sortQuery(query)}`;
+  const queryString = sortQuery(query);
+  return queryString
+    ? `${STORAGE_PREFIX}/${bundleId}?${queryString}`
+    : `${STORAGE_PREFIX}/${bundleId}`;
 }
 
 /**
@@ -89,7 +91,7 @@ async function fileCacheStream(
   options: {
     ttlSec: number;
     gzip?: boolean;
-  }
+  },
 ): Promise<NodeJS.ReadableStream | null> {
   const file = bucket.file(storagePath(bundleId, query));
   try {
@@ -121,12 +123,12 @@ db.collection(BUNDLESPEC_COLLECTION).onSnapshot((snap) => {
  * there is a valid bundle file saved in GCS, and return that if yes. It would
  * save the built bundle file GCS, if a valid bundle file could not be found.
  */
-export const serve = functions.handler.https.onRequest(
+export const serve = functions.https.onRequest(
   async (req, res): Promise<any> => {
     functions.logger.debug(
       "accept-encoding:",
       req.get("accept-encoding"),
-      req.headers
+      req.headers,
     );
     const canGzip = req.get("accept-encoding")?.includes("gzip") || false;
     if (canGzip) {
@@ -177,7 +179,7 @@ export const serve = functions.handler.https.onRequest(
 
     try {
       let stream = Readable.from(
-        (await build(db, bundleId, bundleSpec, paramValues)).build()
+        (await build(db, bundleId, bundleSpec, paramValues)).build(),
       );
 
       if (canGzip) {
@@ -193,7 +195,7 @@ export const serve = functions.handler.https.onRequest(
         storageStream.pipe(
           bucket
             .file(storagePath(bundleId, paramValues))
-            .createWriteStream({ metadata: { contentEncoding: "gzip" } })
+            .createWriteStream({ metadata: { contentEncoding: "gzip" } }),
         );
       }
 
@@ -202,5 +204,5 @@ export const serve = functions.handler.https.onRequest(
       functions.logger.error(e);
       res.status(500).send(e.message);
     }
-  }
+  },
 );

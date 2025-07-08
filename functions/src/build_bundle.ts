@@ -1,11 +1,10 @@
-import { firestore } from "firebase-admin";
-import {
+import type {
   BundleBuilder,
   Firestore,
   Query,
-  Timestamp,
   WhereFilterOp,
 } from "@google-cloud/firestore";
+import type { firestore } from "firebase-admin";
 
 /**
  * Specification of a condition associated to a Firestore query.
@@ -62,7 +61,7 @@ export interface QuerySpec {
 export function parameterize(
   value: any,
   params: ParamsSpec,
-  paramValues: { [key: string]: any }
+  paramValues: { [key: string]: any },
 ): any {
   if (typeof value !== "string" || !value.startsWith("$")) {
     return value;
@@ -100,7 +99,7 @@ export function parameterize(
 export function parameterizePath(
   path: string,
   params: ParamsSpec,
-  paramValues: { [key: string]: any }
+  paramValues: { [key: string]: any },
 ): string {
   return path
     .split("/")
@@ -151,7 +150,7 @@ export async function build(
   db: Firestore,
   bundleId: string,
   bundleSpec: BundleSpec,
-  paramValues: { [key: string]: any }
+  paramValues: { [key: string]: any },
 ): Promise<BundleBuilder> {
   const bundle = db.bundle(bundleId);
   const promises: Promise<void>[] = [];
@@ -161,7 +160,7 @@ export async function build(
     const resolvedDocName = parameterizePath(
       docName,
       bundleSpec.params || {},
-      paramValues
+      paramValues,
     );
     console.debug("bundle.add [doc]:", resolvedDocName);
     promises.push(
@@ -170,7 +169,7 @@ export async function build(
         .get()
         .then((snap) => {
           bundle.add(snap);
-        })
+        }),
     );
   }
 
@@ -182,7 +181,7 @@ export async function build(
         .get()
         .then((snap) => {
           bundle.add(qName, snap);
-        })
+        }),
     );
   }
 
@@ -196,14 +195,14 @@ export function buildQuery(
   db: Firestore,
   qSpec: QuerySpec,
   params: ParamsSpec,
-  paramValues: ParamValues
+  paramValues: ParamValues,
 ): Query {
   const parameterizedPath = parameterizePath(
     qSpec.collection,
     params,
-    paramValues
+    paramValues,
   );
-  let result: Query = !!qSpec.collectionGroupQuery
+  let result: Query = qSpec.collectionGroupQuery
     ? db.collectionGroup(parameterizedPath)
     : db.collection(parameterizedPath);
 
@@ -218,20 +217,20 @@ function handleCondition(
   ref: firestore.Query,
   c: QueryConditionSpec,
   params: ParamsSpec,
-  paramValues: { [key: string]: string }
+  paramValues: { [key: string]: string },
 ): firestore.Query {
   if (Object.keys(c).length !== 1) {
     throw new Error(
       `Query 'conditions' may only have one key each. Found: ${JSON.stringify(
-        Object.keys(c)
-      )}`
+        Object.keys(c),
+      )}`,
     );
   }
   if (c.where) {
     console.debug(
       `.where('${parameterize(c.where[0], params, paramValues)}','${
         c.where[1]
-      }','${parameterize(c.where[2], params, paramValues)}')`
+      }','${parameterize(c.where[2], params, paramValues)}')`,
     );
     let value = parameterize(c.where[2], params, paramValues);
     switch (c.where[1]) {
@@ -240,6 +239,11 @@ function handleCondition(
       case "not-in": {
         // Since array values cannot be an array, we need to detect whether the user has specifically chosen
         // an array of values which are strings or ints.
+
+        // If value is already an array, use it directly
+        if (Array.isArray(value)) {
+          break;
+        }
 
         value = (value as string).split(",").map((value) => {
           const maybeNumber = parseFloat(value);
@@ -264,12 +268,12 @@ function handleCondition(
     return ref.where(
       parameterize(c.where[0], params, paramValues),
       c.where[1],
-      value
+      value,
     );
   } else if (c.orderBy) {
     return ref.orderBy(
       parameterize(c.orderBy[0], params, paramValues),
-      parameterize(c.orderBy[1], params, paramValues)
+      parameterize(c.orderBy[1], params, paramValues),
     );
   } else if (c.limit) {
     return ref.limit(parameterize(c.limit, params, paramValues));
