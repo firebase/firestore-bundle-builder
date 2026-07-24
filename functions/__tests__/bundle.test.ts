@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { buildQuery } from "../src/build_bundle";
+import { buildQuery, parameterizePath } from "../src/build_bundle";
 import * as admin from "firebase-admin";
 
 describe("buildQuery", () => {
@@ -159,3 +159,25 @@ describe("buildQuery", () => {
     }
   });
 });
+
+describe("parameterizePath", () => {
+  it("should successfully parameterize valid single-segment values", () => {
+    const res = parameterizePath(
+      "stores/$city/products",
+      { city: { type: "string", required: true } },
+      { city: "austin" }
+    );
+    expect(res).toEqual("stores/austin/products");
+  });
+
+  it("should throw an error when parameter values contain forward slashes", () => {
+    expect(() =>
+      parameterizePath(
+        "stores/$city/products",
+        { city: { type: "string", required: true } },
+        { city: "austin/private/salaries" }
+      )
+    ).toThrow("Invalid path segment parameter: cannot contain '/'");
+  });
+});
+
