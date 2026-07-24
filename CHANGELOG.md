@@ -1,3 +1,7 @@
+## Version 0.1.5
+
+Added input validation for parameterized paths to enforce segment integrity.
+
 ## Version 0.1.4
 
 Republish to stabilize extension.
