@@ -6,6 +6,8 @@ import {
   Timestamp,
   WhereFilterOp,
 } from "@google-cloud/firestore";
+import { HttpsError } from "firebase-functions/v1/https";
+import * as logger from "firebase-functions/logger";
 
 /**
  * Specification of a condition associated to a Firestore query.
@@ -28,13 +30,13 @@ export interface ParamsSpec {
 
 export interface ParamSpec {
   type?:
-    | "string"
-    | "integer"
-    | "float"
-    | "boolean"
-    | "string-array"
-    | "integer-array"
-    | "float-array";
+  | "string"
+  | "integer"
+  | "float"
+  | "boolean"
+  | "string-array"
+  | "integer-array"
+  | "float-array";
   required?: boolean;
 }
 
@@ -104,8 +106,26 @@ export function parameterizePath(
 ): string {
   return path
     .split("/")
-    .map((part) => parameterize(part, params, paramValues))
-    .join("/");
+    .map((part) => {
+      const val: string = parameterize(part, params, paramValues);
+      if (val.includes("/")) {
+        // Note, details for internal messages are discarded for security purposes
+        logger.error(`Rejecting resolution of path ${path} becuase ${part} was assigned to ${val}, which includes a /. ` +
+          'This may be a sign that an attacker is trying to access a subcollection to which they are not permitted.');
+        throw new HttpsError('invalid-argument', `Invalid argument provided for ${part}`);
+      }
+
+      // Defensive programming: theoretically someone could omit a path component twice, which might look like a lookup
+      // of a different document. E.g. /col1/$doc1/col2/$doc2 with no value for $doc1 and $doc2 turns into a lookup
+      // of /col1//col2/. This currently throws due to the Admin SDK's validation, but this check ensures that if the
+      // parser becomes more forgiving it doesn't introduce a vulnerability.
+      if (!val) {
+        logger.error(`Rejecting resolution of path ${path} becuase ${part} was assigned an empty value. ` +
+          'This may be a sign that an attacker is trying to access a document to which they are not permitted.');
+        throw new HttpsError('invalid-argument', `Invalid argument provided for ${part}`);
+      }
+      return val;
+    }).join("/");
 }
 
 export interface BundleSpec {
@@ -229,8 +249,7 @@ function handleCondition(
   }
   if (c.where) {
     console.debug(
-      `.where('${parameterize(c.where[0], params, paramValues)}','${
-        c.where[1]
+      `.where('${parameterize(c.where[0], params, paramValues)}','${c.where[1]
       }','${parameterize(c.where[2], params, paramValues)}')`
     );
     let value = parameterize(c.where[2], params, paramValues);

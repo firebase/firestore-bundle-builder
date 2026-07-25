@@ -1,4 +1,5 @@
-import { buildQuery } from "../src/build_bundle";
+import { HttpsError } from "firebase-functions/v1/https";
+import { buildQuery, ParamsSpec, parameterizePath } from "../src/build_bundle";
 import * as admin from "firebase-admin";
 
 describe("buildQuery", () => {
@@ -142,4 +143,26 @@ describe("buildQuery", () => {
       expect(JSON.stringify(actual)).toEqual(JSON.stringify(expected));
     }
   });
+
+  describe("parameterizePath", () => {
+    const spec = {
+      "$UID": { type: "string" },
+      "$FRIEND": { type: "string" },
+    } satisfies ParamsSpec;
+
+    it("should allow valid values", () => {
+      expect(parameterizePath("/users/$UID/friends/$FRIEND", spec, {
+        "$UID": "user1",
+        "$FRIEND": "friend1",
+      })).toEqual("/users/user1/friends/friend1");
+    });
+
+    it("should prohibit path injection", () => {
+      expect(() => parameterizePath("/users/$UID", spec, { "$UID": "user/private/data" })).toThrow(HttpsError);
+    });
+
+    it("should reject empty path paremeters (parent collection lookup)", () => {
+      expect(() => parameterizePath("/users/$UID/friends/$FRIEND", spec, {})).toThrow(HttpsError);
+    });
+  })
 });
