@@ -108,11 +108,11 @@ export function parameterizePath(
     .split("/")
     .map((part) => {
       const val: string = parameterize(part, params, paramValues);
-      if (val.includes("/")) {
+      if (typeof val === "string" && val.includes("/")) {
         // Note, details for internal messages are discarded for security purposes
         logger.error(`Rejecting resolution of path ${path} becuase ${part} was assigned to ${val}, which includes a /. ` +
           'This may be a sign that an attacker is trying to access a subcollection to which they are not permitted.');
-        throw new HttpsError('invalid-argument', `Invalid argument provided for ${part}`);
+        throw new HttpsError('invalid-argument', "Only a single path parameter is allowed");
       }
 
       // Defensive programming: theoretically someone could omit a path component twice, which might look like a lookup
@@ -257,25 +257,24 @@ function handleCondition(
       case "array-contains-any":
       case "in":
       case "not-in": {
-        // Since array values cannot be an array, we need to detect whether the user has specifically chosen
-        // an array of values which are strings or ints.
+        if (typeof value === "string") {
+          value = value.split(",").map((v) => {
+            const maybeNumber = parseFloat(v);
+            if (!isNaN(maybeNumber)) {
+              return maybeNumber;
+            }
 
-        value = (value as string).split(",").map((value) => {
-          const maybeNumber = parseFloat(value);
-          if (!isNaN(maybeNumber)) {
-            return maybeNumber;
-          }
+            if (
+              (v.startsWith(`"`) && v.endsWith(`"`)) ||
+              (v.startsWith(`'`) && v.endsWith(`'`))
+            ) {
+              // Remove first and last character
+              return v.substring(1, v.length - 1);
+            }
 
-          if (
-            (value.startsWith(`"`) && value.endsWith(`"`)) ||
-            (value.startsWith(`'`) && value.endsWith(`'`))
-          ) {
-            // Remove first and last character
-            return value.substring(1, value.length - 1);
-          }
-
-          return value;
-        });
+            return v;
+          });
+        }
         break;
       }
     }
