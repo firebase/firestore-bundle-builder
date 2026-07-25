@@ -107,10 +107,10 @@ export function parameterizePath(
   return path
     .split("/")
     .map((part) => {
-      const val: string = parameterize(part, params, paramValues);
+      const val = parameterize(part, params, paramValues);
       if (typeof val === "string" && val.includes("/")) {
         // Note, details for internal messages are discarded for security purposes
-        logger.error(`Rejecting resolution of path ${path} becuase ${part} was assigned to ${val}, which includes a /. ` +
+        logger.error('Rejecting resolution of path ' + path + ' because ' + part + ' was assigned to ' + val + ', which includes a /. ' +
           'This may be a sign that an attacker is trying to access a subcollection to which they are not permitted.');
         throw new HttpsError('invalid-argument', "Only a single path parameter is allowed");
       }
@@ -119,10 +119,10 @@ export function parameterizePath(
       // of a different document. E.g. /col1/$doc1/col2/$doc2 with no value for $doc1 and $doc2 turns into a lookup
       // of /col1//col2/. This currently throws due to the Admin SDK's validation, but this check ensures that if the
       // parser becomes more forgiving it doesn't introduce a vulnerability.
-      if (!val) {
-        logger.error(`Rejecting resolution of path ${path} becuase ${part} was assigned an empty value. ` +
+      if (val === undefined || val === null || val === "") {
+        logger.error('Rejecting resolution of path ' + path + ' because ' + part + ' was assigned an empty value. ' +
           'This may be a sign that an attacker is trying to access a document to which they are not permitted.');
-        throw new HttpsError('invalid-argument', `Invalid argument provided for ${part}`);
+        throw new HttpsError('invalid-argument', 'Invalid argument provided for ' + part);
       }
       return val;
     }).join("/");
