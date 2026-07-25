@@ -122,7 +122,7 @@ export function parameterizePath(
     .split("/")
     .map((part) => {
       const resolved = parameterize(part, params, paramValues);
-      if (String(resolved).includes("/")) {
+      if (resolved != null && String(resolved).includes("/")) {
         throw new Error(
           `Invalid path segment parameter: cannot contain '/'`
         );
