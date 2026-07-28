@@ -1,3 +1,7 @@
+## Version 0.1.6
+
+Hardened parameterized path validation (reject empty segments; return callable-safe errors), upgraded the function runtime to Node.js 22, and modernized dependencies.
+
 ## Version 0.1.5
 
 Added input validation for parameterized paths to enforce segment integrity.

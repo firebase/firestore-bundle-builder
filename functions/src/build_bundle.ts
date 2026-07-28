@@ -22,6 +22,8 @@ import {
   Timestamp,
   WhereFilterOp,
 } from "@google-cloud/firestore";
+import { HttpsError } from "firebase-functions/v1/https";
+import * as logger from "firebase-functions/logger";
 
 /**
  * Specification of a condition associated to a Firestore query.
@@ -122,11 +124,36 @@ export function parameterizePath(
     .split("/")
     .map((part) => {
       const resolved = parameterize(part, params, paramValues);
+
+      // Path params are single document/collection IDs. A slash would let a
+      // caller walk into a different subtree than the template allows.
       if (resolved != null && String(resolved).includes("/")) {
-        throw new Error(
-          `Invalid path segment parameter: cannot contain '/'`
+        // Keep the rejected value in server logs only; client errors stay generic.
+        logger.error(
+          `Rejecting resolution of path ${path} because ${part} was assigned ` +
+            `${resolved}, which includes a /. This may indicate an attempt to ` +
+            `access a subcollection that is not permitted.`
+        );
+        throw new HttpsError(
+          "invalid-argument",
+          "Only a single path segment is allowed"
         );
       }
+
+      // Missing path params collapse into empty segments (e.g. users//friends/),
+      // which can resolve to a different document than the template intended.
+      if (resolved === undefined || resolved === null || resolved === "") {
+        logger.error(
+          `Rejecting resolution of path ${path} because ${part} was assigned ` +
+            `an empty value. This may indicate an attempt to access a document ` +
+            `that is not permitted.`
+        );
+        throw new HttpsError(
+          "invalid-argument",
+          `Invalid argument provided for ${part}`
+        );
+      }
+
       return resolved;
     })
     .join("/");
@@ -264,23 +291,24 @@ function handleCondition(
       case "not-in": {
         // Since array values cannot be an array, we need to detect whether the user has specifically chosen
         // an array of values which are strings or ints.
+        if (typeof value === "string") {
+          value = value.split(",").map((v) => {
+            const maybeNumber = parseFloat(v);
+            if (!isNaN(maybeNumber)) {
+              return maybeNumber;
+            }
 
-        value = (value as string).split(",").map((value) => {
-          const maybeNumber = parseFloat(value);
-          if (!isNaN(maybeNumber)) {
-            return maybeNumber;
-          }
+            if (
+              (v.startsWith(`"`) && v.endsWith(`"`)) ||
+              (v.startsWith(`'`) && v.endsWith(`'`))
+            ) {
+              // Remove first and last character
+              return v.substring(1, v.length - 1);
+            }
 
-          if (
-            (value.startsWith(`"`) && value.endsWith(`"`)) ||
-            (value.startsWith(`'`) && value.endsWith(`'`))
-          ) {
-            // Remove first and last character
-            return value.substring(1, value.length - 1);
-          }
-
-          return value;
-        });
+            return v;
+          });
+        }
         break;
       }
     }

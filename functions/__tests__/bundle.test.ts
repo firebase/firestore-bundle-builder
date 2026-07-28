@@ -15,15 +15,19 @@
  */
 
 import { buildQuery, parameterizePath } from "../src/build_bundle";
+import { HttpsError } from "firebase-functions/v1/https";
 import * as admin from "firebase-admin";
 
 describe("buildQuery", () => {
   let db: admin.firestore.Firestore;
   beforeEach(() => {
-    db = admin.initializeApp({ projectId: "demo-experimental" }).firestore();
+    if (admin.apps.length === 0) {
+      admin.initializeApp({ projectId: "demo-experimental" });
+    }
+    db = admin.firestore();
   });
 
-  xit("should build expected queries", () => {
+  it("should build expected queries", () => {
     const queries: [admin.firestore.Query, admin.firestore.Query][] = [
       [
         buildQuery(db, { collection: "test-coll", conditions: [] }, {}, {}),
@@ -170,14 +174,37 @@ describe("parameterizePath", () => {
     expect(res).toEqual("stores/austin/products");
   });
 
-  it("should throw an error when parameter values contain forward slashes", () => {
+  it("should throw when parameter values contain forward slashes", () => {
     expect(() =>
       parameterizePath(
         "stores/$city/products",
         { city: { type: "string", required: true } },
         { city: "austin/private/salaries" }
       )
-    ).toThrow("Invalid path segment parameter: cannot contain '/'");
+    ).toThrow(HttpsError);
+  });
+
+  it("should throw when a path parameter is missing or empty", () => {
+    expect(() =>
+      parameterizePath(
+        "users/$uid/friends/$friend",
+        {
+          uid: { type: "string" },
+          friend: { type: "string" },
+        },
+        {}
+      )
+    ).toThrow(HttpsError);
+
+    expect(() =>
+      parameterizePath(
+        "users/$uid/friends/$friend",
+        {
+          uid: { type: "string" },
+          friend: { type: "string" },
+        },
+        { uid: "user1", friend: "" }
+      )
+    ).toThrow(HttpsError);
   });
 });
-
