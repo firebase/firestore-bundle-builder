@@ -14,16 +14,21 @@
  * limitations under the License.
  */
 
-import { buildQuery, parameterizePath } from "../src/build_bundle";
+import { buildQuery, ParamsSpec, parameterizePath } from "../src/build_bundle";
+
+import { HttpsError } from "firebase-functions/v1/https";
 import * as admin from "firebase-admin";
 
 describe("buildQuery", () => {
   let db: admin.firestore.Firestore;
   beforeEach(() => {
-    db = admin.initializeApp({ projectId: "demo-experimental" }).firestore();
+    if (admin.apps.length === 0) {
+      admin.initializeApp({ projectId: "demo-experimental" });
+    }
+    db = admin.firestore();
   });
 
-  xit("should build expected queries", () => {
+  it("should build expected queries", () => {
     const queries: [admin.firestore.Query, admin.firestore.Query][] = [
       [
         buildQuery(db, { collection: "test-coll", conditions: [] }, {}, {}),
@@ -157,6 +162,28 @@ describe("buildQuery", () => {
       // functions, and will mistakenly return false.
       expect(JSON.stringify(actual)).toEqual(JSON.stringify(expected));
     }
+  });
+
+  describe("parameterizePath", () => {
+    const spec = {
+      "UID": { type: "string" },
+      "FRIEND": { type: "string" },
+    } satisfies ParamsSpec;
+
+    it("should allow valid values", () => {
+      expect(parameterizePath("users/$UID/friends/$FRIEND", spec, {
+        "UID": "user1",
+        "FRIEND": "friend1",
+      })).toEqual("users/user1/friends/friend1");
+    });
+
+    it("should prohibit path injection", () => {
+      expect(() => parameterizePath("users/$UID", spec, { "UID": "user/private/data" })).toThrow(HttpsError);
+    });
+
+    it("should reject empty path paremeters (parent collection lookup)", () => {
+      expect(() => parameterizePath("users/$UID/friends/$FRIEND", spec, {})).toThrow(HttpsError);
+    });
   });
 });
 
