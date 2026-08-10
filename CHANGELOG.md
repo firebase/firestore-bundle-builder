@@ -1,6 +1,6 @@
 ## Version 0.1.6
 
-Upgraded runtime to Node.js 22, modernized dependencies, and added input validation for parameterized paths.
+Upgraded runtime to Node.js 20, modernized dependencies, and added input validation for parameterized paths.
 
 ## Version 0.1.5
 
