@@ -7,7 +7,7 @@
     "sourceMap": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "types": ["node", "jest"],
+    "types": ["node"],
     "skipLibCheck": true,
     "lib": ["ES2020", "DOM"],
     "typeRoots": ["./node_modules/@types"]
